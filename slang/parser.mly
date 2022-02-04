@@ -13,6 +13,7 @@ let get_loc = Parsing.symbol_start_pos
 %token EOF LPAREN RPAREN COMMA COLON SEMICOLON ADD SUB MUL DIV NOT EQUAL LT ANDOP OROP 
 %token WHAT UNIT AND TRUE FALSE IF FI THEN ELSE LET REC IN BEGIN END BOOL INTTYPE UNITTYPE 
 %token ARROW BAR INL INR FST SND FUN NUF CASE OF REF ASSIGN BANG WHILE DO OD 
+%token WITH /*for custom currying*/
 
 %left ADD SUB                     /* lowest precedence */
 %left MUL DIV ANDOP OROP EQUAL ARROW  LT /* medium precedence */
@@ -80,6 +81,12 @@ expr:
 | INR texpr expr %prec UMINUS        { Past.Inr(get_loc(), $2, $3) }
 | FUN LPAREN IDENT COLON texpr RPAREN ARROW expr END 
                                      { Past.Lambda(get_loc(), ($3, $5, $8)) } 
+// THIS BELOW ADDED TO IMPLEMENT CURRYING
+| FUN LPAREN IDENT COLON texpr WITH IDENT COLON texpr RPAREN ARROW expr END
+                                     { Past.Lambda(get_loc(), ($3, $5, Past.Lambda(get_loc(), ($7, $9, $12)))) }
+| LET IDENT LPAREN IDENT COLON texpr WITH IDENT COLON texpr RPAREN COLON texpr EQUAL expr IN expr END 
+                                     { Past.LetFun (get_loc(), $2, ($4, $6, Past.Lambda(get_loc(), ($8, $10, $15))), $13, $17) }
+// THIS ABOVE ADDED TO IMPLEMENT CURRYING
 | LET IDENT COLON texpr EQUAL expr IN expr END           { Past.Let (get_loc(), $2, $4, $6, $8) }
 | LET IDENT LPAREN IDENT COLON texpr RPAREN COLON texpr EQUAL expr IN expr END 
                                      { Past.LetFun (get_loc(), $2, ($4, $6, $11), $9, $13) }
